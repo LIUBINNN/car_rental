@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import {
   AlertDialog,
@@ -17,9 +17,10 @@ import { toast } from 'sonner';
 export default function ReservationPage() {
   const searchParams = useSearchParams();
   const [showDialog, setShowDialog] = useState(false);
-  const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+  const today = new Date().toISOString().split('T')[0];
+
   const [form, setForm] = useState({
-    carId: searchParams.get('carName'),
+    carId: '',
     name: '',
     phone: '',
     email: '',
@@ -27,6 +28,12 @@ export default function ReservationPage() {
     startDate: '',
     days: 1,
   });
+
+  // Set carId after client mounts
+  useEffect(() => {
+    const carName = searchParams.get('carName') || '';
+    setForm((prev) => ({ ...prev, carId: carName }));
+  }, [searchParams]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
