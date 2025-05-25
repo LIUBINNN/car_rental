@@ -65,12 +65,14 @@ const CarCard: React.FC<CarCardProps> = ({ car }) => {
       {/* 操作按钮 */}
       <div>
         {car.available !== false ? (
-          <Button
-            className="w-full"
-            onClick={() => router.push(`/reservation?carId=${car.id}`)}
-          >
-            Rent Now
-          </Button>
+          <div className="bg-gradient-to-r from-gray-100 to-gray-300 rounded-xl p-1 shadow-sm">
+            <Button
+              className="w-full"
+              onClick={() => router.push(`/reservation?carName=${car.brand} ${car.carModel}`)}
+            >
+              Rent Now
+            </Button>
+          </div>
         ) : (
           <Button disabled className="w-full opacity-50 cursor-not-allowed">
             Unavailable

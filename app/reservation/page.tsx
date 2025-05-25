@@ -1,178 +1,195 @@
 'use client';
 
-import { useRouter, useSearchParams } from 'next/navigation';
-import { useEffect, useState } from 'react';
-import cars from '@/data/cars.json';
+import { useState } from 'react';
+import { useSearchParams } from 'next/navigation';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { toast } from 'sonner';
 
 export default function ReservationPage() {
-  const router = useRouter();
   const searchParams = useSearchParams();
-  const id = searchParams.get('carId');
-
-  const [car, setCar] = useState<any>(null);
+  const [showDialog, setShowDialog] = useState(false);
+  const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
   const [form, setForm] = useState({
+    carId: searchParams.get('carName'),
     name: '',
     phone: '',
     email: '',
     license: '',
     startDate: '',
-    days: 1
+    days: 1,
   });
-  const [total, setTotal] = useState(0);
 
-  // locate selected car
-  useEffect(() => {
-    const found = cars.find((c) => c.id.toString() === id);
-    if (found) {
-      setCar(found);
-      setTotal(found.pricePerD);
-    } else {
-      router.push('/');
-    }
-  }, [id, router]);
-
-  // auto-calculate total
-  useEffect(() => {
-    if (car) {
-      setTotal(car.pricePerD * form.days);
-    }
-  }, [form.days, car]);
-
-  // handle input changes
-  const handleChange = (e: any) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setForm({ ...form, [name]: name === 'days' ? parseInt(value) : value });
-  };
-
-  // handle submit
-  const handleSubmit = () => {
-    const existing = JSON.parse(localStorage.getItem('submittedOrders') || '[]');
-
-    existing.push({
-      id: Date.now().toString(),
-      name: form.name,
-      phone: form.phone,
-      email: form.email,
-      license: form.license,
-      startDate: form.startDate,
-      days: form.days,
-      total,
-      carModel: `${car.brand} ${car.carModel}`
+    setForm({
+      ...form,
+      [name]: name === 'days' ? Number(value) : value,
     });
-
-    localStorage.setItem('submittedOrders', JSON.stringify(existing));
-    alert('Reservation submitted successfully!');
-    router.push('/');
   };
 
-  if (!car) return null;
+  const isFormValid = () => {
+    return (
+      form.name.trim() &&
+      form.phone.trim() &&
+      form.email.trim() &&
+      form.license.trim() &&
+      form.startDate.trim() &&
+      form.days > 0
+    );
+  };
+
+  const validateForm = () => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const phoneRegex = /^0\d{9}$/;
+    const licenseRegex = /^[A-Za-z0-9\s]{5,20}$/;
+
+    if (!emailRegex.test(form.email)) {
+      toast.error('Invalid email format');
+      return false;
+    }
+    if (!phoneRegex.test(form.phone)) {
+      toast.error('Phone must be 10 digits and start with 0');
+      return false;
+    }
+    if (!licenseRegex.test(form.license)) {
+      toast.error('License format is invalid');
+      return false;
+    }
+    if (form.startDate < today) {
+      toast.error('Start Date cannot be in the past');
+      return false;
+    }
+    return true;
+  };
 
   return (
     <main className="p-6 max-w-xl mx-auto space-y-4">
-      <h2 className="text-2xl font-bold mb-2">
-        Rent: {car.brand} {car.carModel}
-      </h2>
-      <p className="text-gray-600">{car.carType}</p>
-      <p className="text-green-600 font-medium">${car.pricePerD}/day</p>
+      <h1 className="text-2xl font-bold mb-4">Reservation Form</h1>
 
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          handleSubmit();
-        }}
-        className="grid gap-4"
-      >
-        <div>
-          <label className="block text-sm font-medium">Name</label>
-          <input
+      <label className="block">
+        <span className="text-sm font-medium">Name</span>
+        <input
           name="name"
           value={form.name}
           onChange={handleChange}
-          placeholder="e.g. Pegi Mu"
-          className="w-full border px-3 py-2 rounded"
+          className="w-full border px-3 py-2 rounded mt-1"
+          placeholder="e.g. John Smith"
           required
-          pattern="[A-Za-z\s]{2,50}"
-          title="2–50 letters and spaces"
-          />
-        </div>
+        />
+      </label>
 
-        <div>
-          <label className="block text-sm font-medium">Phone</label>
-          <input
-            name="phone"
-            value={form.phone}
-            onChange={handleChange}
-            placeholder="e.g. 0412345678"
-            className="w-full border px-3 py-2 rounded"
-            required
-            pattern="^0[0-9]{9}$"
-            title="10 digits starting with 0"
-          />
-        </div>
+      <label className="block">
+        <span className="text-sm font-medium">Phone</span>
+        <input
+          name="phone"
+          value={form.phone}
+          onChange={handleChange}
+          className="w-full border px-3 py-2 rounded mt-1"
+          placeholder="e.g. 0412345678"
+          required
+        />
+      </label>
 
-        <div>
-          <label className="block text-sm font-medium">Email</label>
-          <input
-            name="email"
-            value={form.email}
-            onChange={handleChange}
-            type="email"
-            placeholder="e.g. john@example.com"
-            className="w-full border px-3 py-2 rounded"
-            required
-          />
-        </div>
+      <label className="block">
+        <span className="text-sm font-medium">Email</span>
+        <input
+          type="email"
+          name="email"
+          value={form.email}
+          onChange={handleChange}
+          className="w-full border px-3 py-2 rounded mt-1"
+          placeholder="e.g. john@example.com"
+          required
+        />
+      </label>
 
-        <div>
-          <label className="block text-sm font-medium">License</label>
-          <input
-            name="license"
-            value={form.license}
-            onChange={handleChange}
-            placeholder="e.g. NSW 12345678"
-            className="w-full border px-3 py-2 rounded"
-            required
-            pattern="^[A-Za-z0-9\\s]{5,15}$"
-            title="5–15 characters, letters/numbers/spaces"
-          />
-        </div>
+      <label className="block">
+        <span className="text-sm font-medium">License</span>
+        <input
+          name="license"
+          value={form.license}
+          onChange={handleChange}
+          className="w-full border px-3 py-2 rounded mt-1"
+          placeholder="e.g. NSW 12345678"
+          required
+        />
+      </label>
 
-        <div>
-          <label className="block text-sm font-medium">Start Date</label>
-          <input
-            name="startDate"
-            type="date"
-            value={form.startDate}
-            onChange={handleChange}
-            className="w-full border px-3 py-2 rounded"
-            required
-            min={new Date().toISOString().split('T')[0]}
-          />
-        </div>
+      <label className="block">
+        <span className="text-sm font-medium">Start Date</span>
+        <input
+          type="date"
+          name="startDate"
+          value={form.startDate}
+          onChange={handleChange}
+          min={today}
+          className="w-full border px-3 py-2 rounded mt-1"
+          required
+        />
+      </label>
 
-        <div>
-          <label className="block text-sm font-medium">Days</label>
-          <input
-            name="days"
-            type="number"
-            value={form.days}
-            onChange={handleChange}
-            className="w-full border px-3 py-2 rounded"
-            min={1}
-            max={30}
-            required
-          />
-        </div>
+      <label className="block">
+        <span className="text-sm font-medium">Days</span>
+        <input
+          type="number"
+          name="days"
+          value={form.days}
+          onChange={handleChange}
+          min={1}
+          className="w-full border px-3 py-2 rounded mt-1"
+          required
+        />
+      </label>
 
-        <p className="font-semibold">Total: ${total}</p>
+      <button
+        disabled={!isFormValid()}
+        onClick={() => {
+          if (!validateForm()) return;
+          setShowDialog(true);
+        }}
+        className="w-full bg-blue-600 text-white font-medium py-2 px-4 rounded mt-4 disabled:opacity-50"
+      >
+        Submit Reservation
+      </button>
 
-        <button
-          type="submit"
-          className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded"
-        >
-          Submit Reservation
-        </button>
-      </form>
+      <AlertDialog open={showDialog} onOpenChange={setShowDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirm Submission</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-1 text-sm text-muted-foreground">
+                <div><strong>Car ID:</strong> {form.carId}</div>
+                <div><strong>Name:</strong> {form.name}</div>
+                <div><strong>Phone:</strong> {form.phone}</div>
+                <div><strong>Email:</strong> {form.email}</div>
+                <div><strong>License:</strong> {form.license}</div>
+                <div><strong>Start Date:</strong> {form.startDate}</div>
+                <div><strong>Days:</strong> {form.days}</div>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                toast("Reservation submitted.");
+                setShowDialog(false);
+              }}
+            >
+              Confirm
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </main>
   );
 }
